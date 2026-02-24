@@ -33,7 +33,7 @@ class HelpActivity : AppCompatActivity() {
 
         binding.btnContact.setOnClickListener {
             val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:support@securehomeplus.com")
+                data = Uri.parse("mailto:mohammadkavish979@gmail.com")
                 putExtra(Intent.EXTRA_SUBJECT, "Help Request - SecureHome+")
             }
             startActivity(intent)

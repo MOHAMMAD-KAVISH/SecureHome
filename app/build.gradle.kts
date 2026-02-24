@@ -3,11 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.android)
     // Kotlin KAPT for Room
     id("kotlin-kapt")
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
     namespace = "com.example.securehomeplus"
-    compileSdk = 36  // 36 abhi experimental hai, stable 34 rakh
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.securehomeplus"
@@ -52,6 +53,12 @@ dependencies {
 
     //  Room Database
     implementation("androidx.room:room-runtime:2.6.1")
+    implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    //implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.firestore)
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 
@@ -80,4 +87,5 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
 }

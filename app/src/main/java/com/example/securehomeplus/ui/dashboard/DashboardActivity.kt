@@ -66,7 +66,7 @@ class DashboardActivity : AppCompatActivity() {
             onOptionsItemSelected(item)
         }
 
-        // Footer quote (optional)
+        // Footer quote
         binding.tvQuote.text = "“Your home’s safety is our priority 🔒”"
         binding.tvCopyright.text = "© 2025 SecureHome+ | Crafted by Kavish 💚"
     }

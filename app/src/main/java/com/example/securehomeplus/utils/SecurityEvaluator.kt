@@ -5,8 +5,6 @@ import com.example.securehomeplus.viewmodel.EvaluationResult
 import kotlin.math.roundToInt
 
 object SecurityEvaluator {
-
-
     fun calculateScore(questions: List<SecurityFactor>, answers: Map<Int, Boolean>): EvaluationResult {
         if (questions.isEmpty()) return EvaluationResult(0, emptyList(), emptyList())
 

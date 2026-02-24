@@ -26,14 +26,14 @@ class SurveyAdapter(
             // Restore previous state
             b.checkbox.isChecked = checkedMap[q.id] ?: false
 
-            // 🔹 Handle checkbox toggle manually
+            //  Handle checkbox toggle manually
             b.checkbox.setOnCheckedChangeListener { _: CompoundButton, isChecked: Boolean ->
                 checkedMap[q.id] = isChecked
                 answerCallback(q.id, isChecked)
                 updateCardVisual(isChecked)
             }
 
-            // 🔹 When the entire card or row is clicked
+            //  When the entire card or row is clicked
             b.cardRoot.setOnClickListener {
                 val newState = !b.checkbox.isChecked
                 b.checkbox.isChecked = newState
@@ -42,10 +42,10 @@ class SurveyAdapter(
                 updateCardVisual(newState)
             }
 
-            // 🔹 Restore visual highlight on bind
+            //  Restore visual highlight on bind
             updateCardVisual(b.checkbox.isChecked)
 
-            // 🔹 Optional icon setup
+            //  Optional icon setup
             q.iconResName?.let { name ->
                 val resId = b.root.context.resources.getIdentifier(
                     name,

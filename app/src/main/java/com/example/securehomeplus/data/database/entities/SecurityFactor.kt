@@ -9,5 +9,5 @@ data class SecurityFactor(
     val id: Int = 0,
     val question: String,
     val weight: Int = 10,
-    val iconResName: String? = null // store drawable name if you want to load icon later
+    val iconResName: String? = null
 )

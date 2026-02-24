@@ -49,7 +49,7 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notifications)  // make sure this icon exists
+            .setSmallIcon(R.drawable.ic_notifications)
             .setContentTitle("🏠 SecureHome+ Tip")
             .setContentText(randomTip)
             .setStyle(NotificationCompat.BigTextStyle().bigText(randomTip))

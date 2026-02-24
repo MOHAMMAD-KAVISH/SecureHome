@@ -6,7 +6,6 @@ import com.example.securehomeplus.data.database.entities.SecurityFactor
 
 class SecurityRepository(private val dao: com.example.securehomeplus.data.database.dao.SecurityDao?) {
 
-    // Static fallback list (good for demo). You can rely on DAO if you prepopulate.
     private fun defaultQuestions(): List<SecurityFactor> {
         return listOf(
             SecurityFactor(id = 1, question = "Are all doors locked?", weight = 10, iconResName = "ic_lock"),
@@ -20,7 +19,6 @@ class SecurityRepository(private val dao: com.example.securehomeplus.data.databa
         )
     }
 
-    // Get questions: prefer DB if dao provided & has data; otherwise fallback to default
     suspend fun getQuestions(): List<SecurityFactor> {
         return try {
             if (dao != null) {

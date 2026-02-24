@@ -163,7 +163,6 @@ class MapActivity : AppCompatActivity() {
     private fun onNearbyClicked(loc: LocationEntity) {
         // animate to marker
         binding.mapView.controller.animateTo(GeoPoint(loc.latitude, loc.longitude))
-        // open directions intent to external maps (geo: or google maps)
         val uri = Uri.parse("geo:${loc.latitude},${loc.longitude}?q=${Uri.encode(loc.name)}")
         val i = Intent(Intent.ACTION_VIEW, uri)
         startActivity(i)

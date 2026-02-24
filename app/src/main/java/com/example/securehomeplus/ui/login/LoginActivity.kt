@@ -3,198 +3,218 @@ package com.example.securehomeplus.ui.login
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProvider
-import com.example.securehomeplus.data.database.AppDatabase
-import com.example.securehomeplus.data.repository.UserRepository
+import com.example.securehomeplus.R
 import com.example.securehomeplus.databinding.ActivityLoginBinding
 import com.example.securehomeplus.ui.dashboard.DashboardActivity
 import com.example.securehomeplus.ui.register.RegisterActivity
 import com.example.securehomeplus.utils.PreferencesManager
 import com.example.securehomeplus.utils.ValidationUtils
-import com.example.securehomeplus.viewmodel.AuthViewModel
-import com.example.securehomeplus.viewmodel.AuthViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
+import java.util.concurrent.Executor
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-    private lateinit var viewModel: AuthViewModel
+    private lateinit var auth: FirebaseAuth
     private lateinit var prefs: PreferencesManager
 
-    private var biometricPrompt: BiometricPrompt? = null
-    private var promptInfo: BiometricPrompt.PromptInfo? = null
+    private lateinit var executor: Executor
+    private lateinit var biometricPrompt: BiometricPrompt
+    private lateinit var promptInfo: BiometricPrompt.PromptInfo
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Initialize Firebase
+        auth = FirebaseAuth.getInstance()
         prefs = PreferencesManager(this)
 
-        // Auto-login using fingerprint (if enabled)
-        if (!prefs.isLoggedIn() &&
-            prefs.isBiometricEnabled() &&
-            prefs.getBiometricUser() != null
-        ) {
-            setupBiometricPrompt()
-            biometricPrompt?.authenticate(promptInfo!!)
-        }
-
-        //  If normal session exists
-        if (prefs.isLoggedIn()) {
-            goToDashboard()
-            return
-        }
-
-        setupViewModel()
-        setupLoginButton()
-        setupRegisterButton()
-        setupBiometricSwitch()
-        setupFingerprintIcon()
+        setupBiometric()
+        setupClickListeners()
+        checkSavedSession()
     }
 
-    // ---------------- VIEWMODEL ----------------
-    private fun setupViewModel() {
-        val dao = AppDatabase.getDatabase(this).userDao()
-        val repo = UserRepository(dao)
-        val factory = AuthViewModelFactory(repo)
+    private fun setupClickListeners() {
+        binding.btnLogin.setOnClickListener {
+            loginUser()
+        }
 
-        viewModel = ViewModelProvider(this, factory)[AuthViewModel::class.java]
+        binding.tvRegister.setOnClickListener {
+            startActivity(Intent(this, RegisterActivity::class.java))
+        }
 
-        viewModel.loginResult.observe(this) { user ->
-            if (user != null) {
+        binding.tvForgotPassword.setOnClickListener {
+            showForgotPasswordDialog()
+        }
 
-                prefs.saveLogin(user.email)
-
-                //  If user enabled biometric → bind this email
-                if (prefs.isBiometricEnabled()) {
-                    prefs.saveBiometricUser(user.email)
-                }
-
-                Toast.makeText(this, "Welcome ${user.name}", Toast.LENGTH_SHORT).show()
-                goToDashboard()
-
+        binding.ivFingerprint.setOnClickListener {
+            if (prefs.isBiometricEnabled()) {
+                biometricPrompt.authenticate(promptInfo)
             } else {
-                Toast.makeText(this, "Invalid credentials!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please enable biometric login first", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.cardFingerprint.setOnClickListener {
+            if (prefs.isBiometricEnabled()) {
+                biometricPrompt.authenticate(promptInfo)
+            } else {
+                Toast.makeText(this, "Please enable biometric login first", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun goToDashboard() {
+    private fun setupBiometric() {
+        executor = ContextCompat.getMainExecutor(this)
+
+        biometricPrompt = BiometricPrompt(this, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    val email = prefs.getBiometricUser()
+                    if (email != null && email.isNotEmpty()) {
+                        prefs.saveLogin(email)
+                        navigateToDashboard()
+                    } else {
+                        Toast.makeText(this@LoginActivity,
+                            "No biometric user found", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    Toast.makeText(this@LoginActivity,
+                        "Authentication failed", Toast.LENGTH_SHORT).show()
+                }
+            })
+
+        promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Biometric Login")
+            .setSubtitle("Log in using your fingerprint")
+            .setNegativeButtonText("Cancel")
+            .build()
+    }
+
+    private fun checkSavedSession() {
+        if (prefs.isLoggedIn()) {
+            navigateToDashboard()
+            return
+        }
+    }
+
+    private fun loginUser() {
+        val email = binding.etEmail.text.toString().trim()
+        val password = binding.etPassword.text.toString().trim()
+
+        when {
+            !ValidationUtils.isValidEmail(email) -> {
+                binding.etEmail.error = "Invalid email"
+            }
+            password.isEmpty() -> {
+                binding.etPassword.error = "Password required"
+            }
+            else -> {
+                showProgress(true)
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this) { task ->
+                        showProgress(false)
+                        if (task.isSuccessful) {
+                            val user = auth.currentUser
+                            if (user != null) {
+                                if (user.isEmailVerified) {
+                                    handleSuccessfulLogin(user.email ?: "")
+                                } else {
+                                    Toast.makeText(
+                                        this,
+                                        "Please verify your email first",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    user.sendEmailVerification()
+                                }
+                            }
+                        } else {
+                            Toast.makeText(
+                                this,
+                                "Login failed: ${task.exception?.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+            }
+        }
+    }
+
+    // Line 103-105 ko replace karo isse:
+    private fun handleSuccessfulLogin(email: String) {
+        prefs.saveLogin(email)
+
+        // Agar remember me checked hai to email save karo
+        if (binding.cbRememberMe.isChecked) {  // ✅ FIXED - cbRememberMe use karo
+            prefs.saveEmail(email)
+        }
+
+        Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show()
+        navigateToDashboard()
+    }
+
+    private fun showForgotPasswordDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Reset Password")
+
+        val view = layoutInflater.inflate(R.layout.dialog_forgot_password, null)
+        builder.setView(view)
+
+        val emailInput = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etResetEmail)
+
+        builder.setPositiveButton("Send Reset Email") { _, _ ->
+            val email = emailInput.text.toString().trim()
+            if (ValidationUtils.isValidEmail(email)) {
+                sendPasswordResetEmail(email)
+            } else {
+                Toast.makeText(this, "Please enter a valid email", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        builder.setNegativeButton("Cancel", null)
+        builder.show()
+    }
+
+    private fun sendPasswordResetEmail(email: String) {
+        showProgress(true)
+
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                showProgress(false)
+                if (task.isSuccessful) {
+                    AlertDialog.Builder(this)
+                        .setTitle("Email Sent")
+                        .setMessage("Password reset link has been sent to $email")
+                        .setPositiveButton("OK", null)
+                        .show()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "Failed to send reset email: ${task.exception?.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+    }
+
+    private fun navigateToDashboard() {
         startActivity(Intent(this, DashboardActivity::class.java))
         finish()
     }
 
-    // -------------- LOGIN BUTTON --------------
-    private fun setupLoginButton() {
-        binding.btnLogin.setOnClickListener {
-
-            val email = binding.etEmail.text.toString().trim()
-            val password = binding.etPassword.text.toString().trim()
-
-            when {
-                !ValidationUtils.isValidEmail(email) ->
-                    binding.etEmail.error = "Invalid email"
-
-                password.isEmpty() ->
-                    binding.etPassword.error = "Enter password"
-
-                else -> viewModel.loginUser(email, password)
-            }
-        }
-    }
-
-    // -------------- REGISTER BUTTON --------------
-    private fun setupRegisterButton() {
-        binding.tvRegister.setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
-        }
-    }
-
-    // -------------- BIOMETRIC ENABLE SWITCH --------------
-    private fun setupBiometricSwitch() {
-
-        binding.switchBiometric.isChecked = prefs.isBiometricEnabled()
-
-        binding.switchBiometric.setOnCheckedChangeListener { _, enabled ->
-
-            prefs.setBiometricEnabled(enabled)
-            Toast.makeText(this, "Biometric login: $enabled", Toast.LENGTH_SHORT).show()
-
-            if (enabled) {
-                setupBiometricPrompt()
-                // Bind logged in user
-                prefs.getUserEmail()?.let { prefs.saveBiometricUser(it) }
-            }
-        }
-    }
-
-    // -------------- FINGERPRINT ICON CLICK --------------
-    private fun setupFingerprintIcon() {
-        binding.ivFingerprint.setOnClickListener {
-
-            if (!prefs.isBiometricEnabled()) {
-                Toast.makeText(this, "Enable biometric login first!", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            if (promptInfo == null) {
-                Toast.makeText(this, "Biometric not supported.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            biometricPrompt?.authenticate(promptInfo!!)
-        }
-    }
-
-    // -------------- BIOMETRIC PROMPT SETUP --------------
-    private fun setupBiometricPrompt() {
-
-        val manager = BiometricManager.from(this)
-
-        val canAuth = manager.canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG
-        )
-
-        if (canAuth != BiometricManager.BIOMETRIC_SUCCESS) {
-            Toast.makeText(this, "Fingerprint not available.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val executor = ContextCompat.getMainExecutor(this)
-
-        biometricPrompt = BiometricPrompt(
-            this,
-            executor,
-            object : BiometricPrompt.AuthenticationCallback() {
-
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    Toast.makeText(applicationContext, "Fingerprint Verified!", Toast.LENGTH_SHORT).show()
-
-                    val email = prefs.getBiometricUser()
-                    if (email != null) {
-                        prefs.saveLogin(email)
-                    }
-
-                    goToDashboard()
-                }
-
-                override fun onAuthenticationFailed() {
-                    Toast.makeText(applicationContext, "Try again...", Toast.LENGTH_SHORT).show()
-                }
-            }
-        )
-
-        //  FINAL FIX → NO NEGATIVE BUTTON (mandatory)
-        promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Secure Login")
-            .setSubtitle("Use fingerprint to continue")
-            .setNegativeButtonText("Cancel")
-            .build()
+    private fun showProgress(show: Boolean) {
+        binding.progressBar.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
+        binding.btnLogin.isEnabled = !show
     }
 }
