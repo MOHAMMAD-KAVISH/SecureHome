@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/splash_gradient_bg"
+    android:gravity="center">
+
+    <!-- App Animation -->
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/lottieAnim"
+        android:layout_width="360dp"
+        android:layout_height="360dp"
+        android:layout_centerInParent="true"
+        app:lottie_rawRes="@raw/secure_home"
+        app:lottie_autoPlay="true"
+        app:lottie_loop="true" />
+
+    <!-- App Name -->
+    <TextView
+        android:id="@+id/appName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SecureHome+"
+        android:textSize="38sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/poppins_bold"
+        android:textColor="@android:color/white"
+        android:shadowColor="#66000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="6"
+        android:layout_below="@id/lottieAnim"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:alpha="0"
+        android:translationY="20dp" />
+
+    <!-- Tagline / Quote -->
+    <TextView
+        android:id="@+id/tvQuote"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stay Secure, Stay Smart — Your Safety, Our Priority 🔒"
+        android:textSize="12sp"
+        android:fontFamily="@font/poppins_medium"
+        android:textColor="#E0E0E0"
+        android:layout_below="@id/appName"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="12dp"
+        android:alpha="0"
+        android:translationY="20dp" />
+
+</RelativeLayout>

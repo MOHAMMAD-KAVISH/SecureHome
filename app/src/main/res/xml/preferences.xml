@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="General Settings">
+        <SwitchPreferenceCompat
+            app:key="notifications_enabled"
+            app:title="Enable Notifications"
+            app:summary="Receive daily safety reminders and updates" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Appearance">
+        <ListPreference
+            app:key="theme_mode"
+            app:title="Theme Mode"
+            app:summary="Select your preferred theme"
+            app:entries="@array/theme_entries"
+            app:entryValues="@array/theme_values"
+            app:defaultValue="system" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Data &amp; Privacy">
+        <Preference
+            app:key="clear_history"
+            app:title="Clear Survey History"
+            app:summary="Delete all saved survey reports from local storage" />
+    </PreferenceCategory>
+
+</PreferenceScreen>
